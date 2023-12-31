@@ -94,6 +94,18 @@ impl Matrix {
         return self.m == self.n;
     }
 
+    pub fn is_row_vector(&self) -> bool {
+        return self.m == 1;
+    }
+
+    pub fn is_column_vector(&self) -> bool {
+        return self.n == 1;
+    }
+
+    pub fn is_vector(&self) -> bool {
+        return self.is_column_vector() || self.is_row_vector();
+    }
+
     // Constructors
 
     pub fn new<const M: usize, const N: usize>(raw_data: [[f64; N]; M]) -> Self {
@@ -165,12 +177,36 @@ impl Matrix {
         ]);
     }
 
+    // Data access
+
+    pub fn get_rows(&self, row_slice: &[usize]) -> Self {
+        let mut data = Vec::with_capacity(self.n * row_slice.len());
+
+        for m in row_slice {
+            for n in 0..self.n {
+                data.push(self[(*m, n)])
+            }
+        }
+
+        return Self::from(data, (row_slice.len(), self.n));
+    }
+
+    pub fn get_column(&self, column_idx: usize) -> Self {
+        let mut data = Vec::with_capacity(self.m);
+
+        for m in 0..self.m {
+            data.push(self[(m, column_idx)])
+        }
+
+        return Self::from(data, (self.m, 1));
+    }
+
     // Operations
 
     /// Calculate the determinant of the matrix.
     pub fn determinant(&self) -> f64 {
-        assert_eq!(
-            self.m, self.n,
+        assert!(
+            self.is_quadratic(),
             "Matrix must be square for determinant calculation"
         );
 
@@ -234,15 +270,57 @@ impl Matrix {
     #[allow(non_snake_case)]
     /// Returns the transpose of the matrix
     pub fn T(&self) -> Matrix {
-        let mut new_data = Vec::with_capacity(self.len());
+        let mut result = self.clone();
+        result.T_ip();
 
-        for n in 0..self.n {
-            for m in 0..self.m {
-                new_data.push(self[(m, n)]);
+        return result;
+    }
+
+    pub fn dot(&self, rhs: &Matrix) -> f64 {
+        assert!(
+            self.is_row_vector() && rhs.is_column_vector(),
+            "Provided matrices aren't vectors of the correct form."
+        );
+        assert!(self.len() == rhs.len(), "Vectors aren't of same size");
+
+        return self
+            .data
+            .iter()
+            .zip(rhs.data.iter())
+            .map(|(v1, v2)| v1 * v2)
+            .sum();
+    }
+
+    pub fn dyadic(&self, rhs: &Matrix) -> Matrix {
+        assert!(
+            self.is_column_vector() && rhs.is_row_vector(),
+            "Provided matrices aren't vectors of the correct form"
+        );
+
+        let mut result_data = Vec::with_capacity(self.m * rhs.n);
+
+        for m in 0..self.m {
+            for n in 0..rhs.n {
+                result_data.push(self.data[m] * rhs.data[n])
             }
         }
 
-        return Matrix::from(new_data, (self.n, self.m));
+        return Matrix::from(result_data, (self.m, rhs.n));
+    }
+
+    pub fn cross(&self, rhs: &Matrix) -> Matrix {
+        assert!(
+            self.is_column_vector() && self.len() == 3 && rhs.is_column_vector() && rhs.len() == 3,
+            "Provided matrices aren't column vectors of length 3"
+        );
+
+        let l = &self.data;
+        let r = &rhs.data;
+        return Matrix::new([
+            [l[1] * r[2] - l[2] * r[1]],
+            [l[2] * r[0] - l[0] * r[2]],
+            [l[0] * r[1] - l[1] * r[0]],
+        ]);
     }
 
     pub fn pow(&self, exponent: u64) -> Matrix {
@@ -282,6 +360,12 @@ impl Matrix {
             *self *= &orig;
         }
     }
+
+    pub fn norm_l2(&self) -> f64 {
+        let result: f64 = self.data.iter().map(|e| e * e).sum();
+        return result / (self.len() as f64);
+    }
 }
 
 mod operators;
+mod transforms;
