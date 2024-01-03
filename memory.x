@@ -1,4 +1,4 @@
-/* Linker script for the STM32F303VCT6 */
+/* Linker script for the olimex-stm32-h405 */
 MEMORY
 {
   /* NOTE 1 K = 1 KiBi = 1024 bytes */
