@@ -1,10 +1,12 @@
-use super::Matrix;
-use std::ops::{Add, Mul, MulAssign, Neg, Sub};
+use alloc::vec::Vec;
 
-impl Mul<f64> for &Matrix {
+use super::Matrix;
+use core::ops::{Add, Mul, MulAssign, Neg, Sub};
+
+impl Mul<f32> for &Matrix {
     type Output = Matrix;
 
-    fn mul(self, rhs: f64) -> Self::Output {
+    fn mul(self, rhs: f32) -> Self::Output {
         let mut result_data = Vec::with_capacity(self.m * self.n);
 
         for e in &self.data {
@@ -15,8 +17,8 @@ impl Mul<f64> for &Matrix {
     }
 }
 
-impl MulAssign<f64> for Matrix {
-    fn mul_assign(&mut self, rhs: f64) {
+impl MulAssign<f32> for Matrix {
+    fn mul_assign(&mut self, rhs: f32) {
         for e in &mut self.data {
             *e *= rhs;
         }
@@ -36,7 +38,7 @@ impl Mul<&Matrix> for &Matrix {
             rhs.n,
         );
 
-        let mut result_data: Vec<f64> = Vec::with_capacity(self.m * rhs.n);
+        let mut result_data: Vec<f32> = Vec::with_capacity(self.m * rhs.n);
         for m in 0..self.m {
             for o in 0..rhs.n {
                 let value = (0..self.n).map(|n| self[(m, n)] * rhs[(n, o)]).sum();
@@ -59,7 +61,7 @@ impl MulAssign<&Matrix> for Matrix {
             rhs.n,
         );
 
-        let mut result_data: Vec<f64> = Vec::with_capacity(self.m * rhs.n);
+        let mut result_data: Vec<f32> = Vec::with_capacity(self.m * rhs.n);
         for m in 0..self.m {
             for o in 0..rhs.n {
                 let value = (0..self.n).map(|n| self[(m, n)] * rhs[(n, o)]).sum();
@@ -68,7 +70,7 @@ impl MulAssign<&Matrix> for Matrix {
         }
 
         self.data = result_data;
-        std::mem::swap(&mut self.m, &mut self.n);
+        core::mem::swap(&mut self.m, &mut self.n);
     }
 }
 
@@ -85,7 +87,7 @@ impl Add<&Matrix> for &Matrix {
             rhs.n,
         );
 
-        let mut result_data: Vec<f64> = Vec::with_capacity(self.len());
+        let mut result_data: Vec<f32> = Vec::with_capacity(self.len());
 
         for i in 0..self.len() {
             result_data.push(self.data[i] + rhs.data[i]);
@@ -108,7 +110,7 @@ impl Sub<&Matrix> for &Matrix {
             rhs.n,
         );
 
-        let mut result_data: Vec<f64> = Vec::with_capacity(self.len());
+        let mut result_data: Vec<f32> = Vec::with_capacity(self.len());
 
         for i in 0..self.len() {
             result_data.push(self.data[i] - rhs.data[i]);

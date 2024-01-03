@@ -1,17 +1,18 @@
-use std::{
-    fmt::{Debug, Display},
-    ops::{Index, IndexMut},
-};
+use alloc::string::String;
+use alloc::vec::Vec;
+use alloc::{format, vec};
+use core::{fmt, iter, ops};
+use libm::{cosf, sincosf, sinf};
 
 #[derive(Debug, Clone)]
 pub struct Matrix {
     pub m: usize,
     pub n: usize,
-    data: Vec<f64>,
+    data: Vec<f32>,
 }
 
-impl Display for Matrix {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Matrix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Convert all numbers to strings
         let mut str_data = Vec::with_capacity(self.len());
         let mut max_len: usize = 0;
@@ -35,7 +36,7 @@ impl Display for Matrix {
                 continue;
             }
 
-            let missing_str: String = std::iter::repeat(' ').take(missing_len).collect();
+            let missing_str: String = iter::repeat(' ').take(missing_len).collect();
             str_date.insert_str(0, &missing_str);
         }
 
@@ -55,12 +56,12 @@ impl Display for Matrix {
             write_row!(m);
         }
 
-        return std::fmt::Result::Ok(());
+        return Result::Ok(());
     }
 }
 
-impl Index<(usize, usize)> for Matrix {
-    type Output = f64;
+impl ops::Index<(usize, usize)> for Matrix {
+    type Output = f32;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         assert!(
@@ -71,7 +72,7 @@ impl Index<(usize, usize)> for Matrix {
     }
 }
 
-impl IndexMut<(usize, usize)> for Matrix {
+impl ops::IndexMut<(usize, usize)> for Matrix {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         assert!(
             (index.0 < self.m) && (index.1 < self.n),
@@ -108,13 +109,13 @@ impl Matrix {
 
     // Constructors
 
-    pub fn new<const M: usize, const N: usize>(raw_data: [[f64; N]; M]) -> Self {
-        let mut data: Vec<f64> = Vec::with_capacity(M * N);
+    pub fn new<const M: usize, const N: usize>(raw_data: [[f32; N]; M]) -> Self {
+        let mut data: Vec<f32> = Vec::with_capacity(M * N);
         data.extend(raw_data.iter().flat_map(|e| e.iter()));
         return Self::from(data, (M, N));
     }
 
-    pub fn from(data: Vec<f64>, shape: (usize, usize)) -> Self {
+    pub fn from(data: Vec<f32>, shape: (usize, usize)) -> Self {
         assert!(
             data.len() == shape.0 * shape.1,
             "Length of data {} doesn't match {}x{} shape of the matrix.",
@@ -133,7 +134,7 @@ impl Matrix {
         return Self::fill(0.0, shape);
     }
 
-    pub fn fill(value: f64, shape: (usize, usize)) -> Self {
+    pub fn fill(value: f32, shape: (usize, usize)) -> Self {
         return Self::from(vec![value; shape.0 * shape.1], shape);
     }
 
@@ -147,19 +148,19 @@ impl Matrix {
         return result;
     }
 
-    pub fn rotation_2d(angle: f64) -> Self {
-        let (sin, cos) = angle.sin_cos();
+    pub fn rotation_2d(angle: f32) -> Self {
+        let (sin, cos) = sincosf(angle);
         return Matrix::new([[cos, -sin], [sin, cos]]);
     }
 
-    pub fn rotation_3d(yaw: f64, pitch: f64, roll: f64) -> Self {
+    pub fn rotation_3d(yaw: f32, pitch: f32, roll: f32) -> Self {
         // Precompute trigonometric values
-        let cos_yaw = yaw.cos();
-        let sin_yaw = yaw.sin();
-        let cos_pitch = pitch.cos();
-        let sin_pitch = pitch.sin();
-        let cos_roll = roll.cos();
-        let sin_roll = roll.sin();
+        let cos_yaw = cosf(yaw);
+        let sin_yaw = sinf(yaw);
+        let cos_pitch = cosf(pitch);
+        let sin_pitch = sinf(pitch);
+        let cos_roll = cosf(roll);
+        let sin_roll = sinf(roll);
 
         // Directly construct the rotation matrix
         return Matrix::new([
@@ -204,7 +205,7 @@ impl Matrix {
     // Operations
 
     /// Calculate the determinant of the matrix.
-    pub fn determinant(&self) -> f64 {
+    pub fn determinant(&self) -> f32 {
         assert!(
             self.is_quadratic(),
             "Matrix must be square for determinant calculation"
@@ -225,7 +226,7 @@ impl Matrix {
     }
 
     /// Helper function to compute the cofactor of a matrix element
-    fn cofactor(&self, row: usize, col: usize) -> f64 {
+    fn cofactor(&self, row: usize, col: usize) -> f32 {
         let minor_matrix = self.minor_matrix(row, col);
         let sign = if (row + col) % 2 == 0 { 1.0 } else { -1.0 };
 
@@ -264,7 +265,7 @@ impl Matrix {
         }
 
         self.data = new_data;
-        std::mem::swap(&mut self.m, &mut self.n);
+        core::mem::swap(&mut self.m, &mut self.n);
     }
 
     #[allow(non_snake_case)]
@@ -276,7 +277,7 @@ impl Matrix {
         return result;
     }
 
-    pub fn dot(&self, rhs: &Matrix) -> f64 {
+    pub fn dot(&self, rhs: &Matrix) -> f32 {
         assert!(
             self.is_row_vector() && rhs.is_column_vector(),
             "Provided matrices aren't vectors of the correct form."
@@ -361,9 +362,9 @@ impl Matrix {
         }
     }
 
-    pub fn norm_l2(&self) -> f64 {
-        let result: f64 = self.data.iter().map(|e| e * e).sum();
-        return result / (self.len() as f64);
+    pub fn norm_l2(&self) -> f32 {
+        let result: f32 = self.data.iter().map(|e| e * e).sum();
+        return result / (self.len() as f32);
     }
 }
 
